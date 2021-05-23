@@ -26,7 +26,7 @@ import models
 import datasets
 from config import config
 from config import update_config
-from core.function import testval, test
+from core.function import testval, test, myTestval
 from utils.modelsummary import get_model_summary
 from utils.utils import create_logger, FullModel
 
@@ -76,7 +76,7 @@ def main():
     if config.TEST.MODEL_FILE:
         model_state_file = config.TEST.MODEL_FILE
     else:
-        model_state_file = os.path.join(final_output_dir, 'final_state.pth')        
+        model_state_file = os.path.join(final_output_dir, 'best.pth')   # turn final_state.pth to best.pth
     logger.info('=> loading model from {}'.format(model_state_file))
         
     pretrained_dict = torch.load(model_state_file)
@@ -107,7 +107,6 @@ def main():
                         base_size=config.TEST.BASE_SIZE,
                         crop_size=test_size,
                         downsample_rate=1)
-
     testloader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=1,
@@ -116,23 +115,35 @@ def main():
         pin_memory=True)
     
     start = timeit.default_timer()
+
     if 'val' in config.DATASET.TEST_SET:
-        mean_IoU, IoU_array, pixel_acc, mean_acc = testval(config, 
-                                                           test_dataset, 
-                                                           testloader, 
-                                                           model)
-    
-        msg = 'MeanIU: {: 4.4f}, Pixel_Acc: {: 4.4f}, \
-            Mean_Acc: {: 4.4f}, Class IoU: '.format(mean_IoU, 
-            pixel_acc, mean_acc)
+        # mean_IoU, IoU_array, pixel_acc, mean_acc = testval(config,
+        #                                                    test_dataset,
+        #                                                    testloader,
+        #                                                    model)
+        #
+        # msg = 'MeanIU: {: 4.4f}, Pixel_Acc: {: 4.4f}, \
+        #     Mean_Acc: {: 4.4f}, Class IoU: '.format(mean_IoU,
+        #     pixel_acc, mean_acc)
+        # logging.info(msg)
+        # logging.info(IoU_array)
+
+        F, J = myTestval(config,
+                         test_dataset,
+                         testloader,
+                         model)
+
+        msg = 'F: {: 4.4f}, J: {: 4.4f} '.format(F,
+                                                 J)
         logging.info(msg)
-        logging.info(IoU_array)
     elif 'test' in config.DATASET.TEST_SET:
-        test(config, 
-             test_dataset, 
-             testloader, 
+        # import pdb
+        # pdb.set_trace()
+        test(config,
+             test_dataset,
+             testloader,
              model,
-             sv_dir=final_output_dir)
+             sv_dir=r'/raid/wj/HRNet-Semantic-Segmentation/results/faceparse')
 
     end = timeit.default_timer()
     logger.info('Mins: %d' % np.int((end-start)/60))

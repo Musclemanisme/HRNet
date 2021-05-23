@@ -478,6 +478,9 @@ class HighResolutionNet(nn.Module):
             model_dict = self.state_dict()              
             pretrained_dict = {k: v for k, v in pretrained_dict.items()
                                if k in model_dict.keys()}
+            # del pretrained_dict['last_layer.3.weight']
+            # del pretrained_dict['last_layer.3.bias']    # only use once for loading pretrained model
+            # 这两行是修改了最后一层的输出，原来是20类，修改成18类，没有加载最后一层20-channel的参数，只用一次
             for k, _ in pretrained_dict.items():
                 logger.info(
                     '=> loading {} pretrained model {}'.format(k, pretrained))

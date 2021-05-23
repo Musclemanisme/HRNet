@@ -46,6 +46,7 @@ def parse_args():
                         help="Modify config options using the command-line",
                         default=None,
                         nargs=argparse.REMAINDER)
+    parser.add_argument('--gpu', type=str, default='0')
 
     args = parser.parse_args()
     update_config(config, args)
@@ -59,6 +60,8 @@ def get_sampler(dataset):
         return DistributedSampler(dataset)
     else:
         return None
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 def main():
     args = parse_args()
@@ -87,11 +90,13 @@ def main():
     cudnn.enabled = config.CUDNN.ENABLED
     gpus = list(config.GPUS)
     distributed = args.local_rank >= 0
+    # import pdb
+    # pdb.set_trace()
     if distributed:
         device = torch.device('cuda:{}'.format(args.local_rank))    
         torch.cuda.set_device(device)
         torch.distributed.init_process_group(
-            backend="nccl", init_method="env://",
+            backend="nccl", init_method="tcp://127.0.0.1:33241", rank=0, world_size=1
         )        
 
     # build model
@@ -138,7 +143,7 @@ def main():
         shuffle=config.TRAIN.SHUFFLE and train_sampler is None,
         num_workers=config.WORKERS,
         pin_memory=True,
-        drop_last=True,
+        drop_last=False,
         sampler=train_sampler)
 
     extra_epoch_iters = 0
@@ -175,7 +180,7 @@ def main():
                         num_samples=config.TEST.NUM_SAMPLES,
                         num_classes=config.DATASET.NUM_CLASSES,
                         multi_scale=False,
-                        flip=False,
+                        flip=True,
                         ignore_label=config.TRAIN.IGNORE_LABEL,
                         base_size=config.TEST.BASE_SIZE,
                         crop_size=test_size,
@@ -211,7 +216,8 @@ def main():
         )
     else:
         model = nn.DataParallel(model, device_ids=gpus).cuda()
-    
+        # device ='cuda:' + args.gpu if torch.cuda.is_available() else 'cpu'
+        # model = model.to(device)
 
     # optimizer
     if config.TRAIN.OPTIMIZER == 'sgd':

@@ -94,6 +94,8 @@ class BaseDataset(data.Dataset):
             label = cv2.resize(label, (new_w, new_h),
                                interpolation=cv2.INTER_NEAREST)
         else:
+            # print('Image type is :')
+            # print(type(image))
             return image
 
         if rand_crop:
